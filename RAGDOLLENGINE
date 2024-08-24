@@ -8,7 +8,6 @@ function chatMessage(str)
         ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(str, "All")
     end
 end
-local spamstring = getstring(1)
-repeat wait(spamspeed)
-	chatMessage(spamstring)
+repeat wait(1)
+	chatMessage("nigger fuck you nigger fuck you nigger fuck you your bitch motherfucker fat")
 end
