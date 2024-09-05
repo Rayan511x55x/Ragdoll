@@ -60,6 +60,7 @@ local function onPlayerChatted(player, message)
     executeCommand(command, targetName, player)
 end
 
+-- Connect chat handler for each player
 Players.PlayerAdded:Connect(function(player)
     player.Chatted:Connect(function(message)
         onPlayerChatted(player, message)
@@ -79,12 +80,14 @@ end)
 
 -- Initialize display names for already connected players
 for _, v in pairs(Players:GetChildren()) do
-    local PREMS = table.find(PremUser, v.UserId)
-    if PREMS then
-        wait(5)
-        local humanoid = v.Character and v.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid.DisplayName = (table.find(PremUser, v.UserId) and "[Owner] " or "[Admin] ") .. humanoid.DisplayName
+    if v:IsA("Player") then
+        local PREMS = table.find(PremUser, v.UserId)
+        if PREMS then
+            wait(5)
+            local humanoid = v.Character and v.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.DisplayName = (table.find(PremUser, v.UserId) and "[Owner] " or "[Admin] ") .. humanoid.DisplayName
+            end
         end
     end
 end
