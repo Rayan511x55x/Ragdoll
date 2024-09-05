@@ -6,7 +6,6 @@ local PremUser = {
 
 local Players = game.Players
 local ReplicatedStorage = game:GetService('ReplicatedStorage')
-local ChatService = game:GetService('Chat')
 
 local function executeCommand(command, targetName, executor)
     local targetPlayer = Players:FindFirstChild(targetName) or executor
@@ -50,40 +49,35 @@ local function executeCommand(command, targetName, executor)
     end
 end
 
-local function handleChatMessage(message, speaker)
-    local plr = Players:FindFirstChild(speaker.Name)
-    if not plr then return end
-
-    local adminUserId = plr.UserId
-    if not table.find(PremUser, adminUserId) then return end
+local function onPlayerChatted(player, message)
+    if not table.find(PremUser, player.UserId) then return end
 
     local msg = string.lower(message)
     local SplitCMD = string.split(msg, ' ')
     local command = SplitCMD[1]
-    local targetName = SplitCMD[2] or plr.Name -- Default to self if no target is specified
+    local targetName = SplitCMD[2] or player.Name -- Default to self if no target is specified
 
-    executeCommand(command, targetName, plr)
+    executeCommand(command, targetName, player)
 end
 
-ChatService.OnMessageDoneFiltering:Connect(function(messageInfo)
-    local message = messageInfo.Message
-    local speaker = messageInfo.FromSpeaker
+Players.PlayerAdded:Connect(function(player)
+    player.Chatted:Connect(function(message)
+        onPlayerChatted(player, message)
+    end)
 
-    handleChatMessage(message, speaker)
-end)
-
-Players.PlayerAdded:Connect(function(plr)
-    local PREMS = table.find(PremUser, plr.UserId)
+    -- Handle display names for admins
+    local PREMS = table.find(PremUser, player.UserId)
     if PREMS then
-        plr.CharacterAdded:Connect(function()
-            local humanoid = plr.Character:FindFirstChildOfClass("Humanoid")
+        player.CharacterAdded:Connect(function()
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
             if humanoid then
-                humanoid.DisplayName = (table.find(PremUser, plr.UserId) and "[Owner] " or "[Admin] ") .. humanoid.DisplayName
+                humanoid.DisplayName = (table.find(PremUser, player.UserId) and "[Owner] " or "[Admin] ") .. humanoid.DisplayName
             end
         end)
     end
 end)
 
+-- Initialize display names for already connected players
 for _, v in pairs(Players:GetChildren()) do
     local PREMS = table.find(PremUser, v.UserId)
     if PREMS then
