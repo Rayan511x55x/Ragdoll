@@ -117,4 +117,3 @@ end
 game.TextChatService.TextChannels.RBXGeneral.MessageReceived:Connect(onCommandReceived)
 
 -- Optional: Status update for loading
-chat("LunarBot is loaded! Use " .. prefix .. "say <message>, " .. prefix .. "kick <player>, " .. prefix .. "follow <player>, " .. prefix .. "freeze <player>.")
