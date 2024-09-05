@@ -1,6 +1,6 @@
 local PremUser = {
     3861815968, -- iiTheCaliXx
-    3861815968, -- LaBeastHk
+    3743834922, -- LaBeastHk
     2549855342, -- svoirr
 }
 
