@@ -26,17 +26,9 @@ local commands = {
         Name = "kick",
         Use = "Kicks a specified player from the game.",
         CommandFunction = function(args, speaker)
-            if not isWhitelisted(speaker) then
-                chat("You do not have permission to execute this command.")
-                return
-            end
-            
             local targetPlayer = game.Players:FindFirstChild(args[2])
             if targetPlayer then
                 targetPlayer:Kick("You have been kicked by " .. speaker)
-                chat(targetPlayer.DisplayName .. " has been kicked.")
-            else
-                chat("Player not found.")
             end
         end,
     },
@@ -44,18 +36,10 @@ local commands = {
         Name = "follow",
         Use = "Makes the bot follow a specified player.",
         CommandFunction = function(args, speaker)
-            if not isWhitelisted(speaker) then
-                chat("You do not have permission to execute this command.")
-                return
-            end
-            
             local playerToFollow = args[2] and game.Players:FindFirstChild(args[2]) or nil
             if playerToFollow then
                 follow(playerToFollow)
-                chat("Now following " .. playerToFollow.DisplayName .. ".")
                 followplr = playerToFollow
-            else
-                chat("Player not found.")
             end
         end,
     },
@@ -63,18 +47,9 @@ local commands = {
         Name = "freeze",
         Use = "Freezes a specified player in place.",
         CommandFunction = function(args, speaker)
-            if not isWhitelisted(speaker) then
-                chat("You do not have permission to execute this command.")
-                return
-            end
-            
             local targetPlayer = game.Players:FindFirstChild(args[2])
             if targetPlayer then
-                -- Implementing freeze logic such as preventing the player from moving
                 targetPlayer.Character.HumanoidRootPart.Anchored = true
-                chat(targetPlayer.DisplayName .. " has been frozen.")
-            else
-                chat("Player not found.")
             end
         end,
     },
@@ -82,13 +57,28 @@ local commands = {
         Name = "say",
         Use = "Sends a message in chat.",
         CommandFunction = function(args, speaker)
-            if not isWhitelisted(speaker) then
-                chat("You do not have permission to execute this command.")
-                return
-            end
-
             local message = table.concat(args, " ", 2) -- Join arguments as message
             chat(message)
+        end,
+    },
+    bring = {
+        Name = "bring",
+        Use = "Brings a specified player to the speaker or all local players if `.` is used.",
+        CommandFunction = function(args, speaker)
+            local query = args[2]
+            if query == "." then
+                for _, player in pairs(game.Players:GetPlayers()) do
+                    if player ~= bot then -- Optionally exclude the bot itself
+                        follow(player)
+                    end
+                end
+            elseif query and string.len(query) >= 3 then
+                for _, player in pairs(game.Players:GetPlayers()) do
+                    if player.Name:lower():sub(1, 3) == query:lower() or player.DisplayName:lower():sub(1, 3) == query:lower() then
+                        follow(player)
+                    end
+                end
+            end
         end,
     },
 }
@@ -97,7 +87,6 @@ local commands = {
 local function onCommandReceived(data)
     local message = data.Text
     local speakerPlayer = game.Players:GetPlayerByUserId(data.TextSource.UserId)
-    local speaker = speakerPlayer.Name
 
     if not speakerPlayer then return end
 
@@ -107,13 +96,11 @@ local function onCommandReceived(data)
         local command = commands[cmdName]
 
         if command and command.CommandFunction then
-            command.CommandFunction(args, speaker)
-        else
-            chat("Command not found.")
+            if isWhitelisted(speakerPlayer.Name) then -- Check whitelist
+                command.CommandFunction(args, speakerPlayer.Name)
+            end
         end
     end
 end
 
 game.TextChatService.TextChannels.RBXGeneral.MessageReceived:Connect(onCommandReceived)
-
--- Optional: Status update for loading
